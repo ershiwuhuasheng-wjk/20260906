@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学期值日值班表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#3a2a5e; --muted:#6d5a8f;
+    --accent:#c26ad0; --accent2:#e3946f;
+    --glass:rgba(255,255,255,.16);
+    --line:rgba(255,255,255,.45);
+    --ring:rgba(194,106,208,.3);
+    --radius:22px;
+    --serif:"Playfair Display",Georgia,"Songti SC","STSong",serif;
+    --sans:"Inter","Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    --mono:"JetBrains Mono",Consolas,ui-monospace,monospace;
+    --c1:#e56b6b; --c2:#e0a24b; --c3:#57bd8a; --c4:#7aa7e8; --c5:#b17be0; --c6:#5fbfb6;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:#7a5fb0;color:var(--ink);font-family:var(--sans);line-height:1.7;overflow-x:hidden;position:relative;padding-bottom:40px}
+
+  /* ---------- 画面：落日群山，无边框 ---------- */
+  .sea{position:fixed;inset:0;z-index:-6;pointer-events:none;background:
+    radial-gradient(46% 26% at 66% 58%, rgba(255,240,214,.9), rgba(255,240,214,0) 72%),
+    linear-gradient(180deg, rgba(58,40,110,.34) 0%, rgba(58,40,110,0) 24%, rgba(58,40,110,0) 58%, rgba(58,30,90,.30) 100%),
+    linear-gradient(180deg,#5b46a0 0%,#7d5fbe 16%,#a680d0 34%,#cda3dc 50%,#ecc0d8 64%,#f7d6c2 76%,#f0c39a 88%,#d2a173 100%);}
+  .sea::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='%234a3a80' d='M0 320 L0 210 L140 150 L300 235 L470 120 L640 245 L820 160 L1000 255 L1180 145 L1360 235 L1440 180 L1440 320 Z'/%3E%3Cpath fill='%23574a8f' d='M0 320 L0 255 L220 195 L400 280 L600 205 L800 290 L1020 210 L1220 295 L1440 235 L1440 320 Z'/%3E%3C/svg%3E") bottom/100% 100% no-repeat;opacity:.5;filter:blur(.4px)}
+  .sea::after{content:"";position:absolute;top:14%;left:13%;width:40px;height:40px;border-radius:50%;box-shadow:inset -12px -7px 0 0 rgba(255,255,255,.8);transform:rotate(18deg);opacity:.85}
+  .glow{position:fixed;inset:-15%;z-index:-5;pointer-events:none;filter:blur(60px);opacity:.5;animation:drift 22s ease-in-out infinite alternate;
+    background:radial-gradient(40% 40% at 30% 20%, rgba(255,214,196,.5), transparent 62%), radial-gradient(42% 46% at 82% 20%, rgba(196,150,230,.45), transparent 62%), radial-gradient(45% 50% at 72% 86%, rgba(255,226,196,.4), transparent 60%), radial-gradient(40% 44% at 20% 84%, rgba(196,150,230,.4), transparent 60%)}
+  @keyframes drift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(2%,-2%,0) scale(1.06)}}
+  .grain{position:fixed;inset:0;z-index:-4;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  #ascii{display:none}
+  /* 流光：左上 → 右下 */
+  .sweep{position:fixed;inset:-30%;z-index:-2;pointer-events:none;
+    background:linear-gradient(115deg, transparent 44%, rgba(255,255,255,.05) 47%, rgba(255,240,220,.12) 51%, rgba(255,214,196,.06) 55%, transparent 59%);
+    animation:sweep 8s linear infinite}
+  @keyframes sweep{0%{transform:translate(-30%,-30%)}100%{transform:translate(30%,30%)}}
+
+  /* ---------- 预加载 ---------- */
+  #preloader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:linear-gradient(180deg,#5b46a0,#cda3dc);transition:opacity .7s ease,visibility .7s ease}
+  #preloader.done{opacity:0;visibility:hidden}
+  #preloader .core{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#e9c7e8 60%,#c26ad0);animation:ping 1.2s ease-out infinite;box-shadow:0 0 40px rgba(255,255,255,.5)}
+  @keyframes ping{0%{transform:scale(.85);opacity:.8}100%{transform:scale(1.15);opacity:.35}}
+  #preloader .txt{font-family:var(--serif);font-size:15px;letter-spacing:2px;color:#fff}
+
+  /* ---------- 光标 ---------- */
+  .fx-glow,.fx-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:9998;border-radius:50%}
+  .fx-glow{width:230px;height:230px;background:radial-gradient(circle,rgba(255,255,255,.35),transparent 65%);mix-blend-mode:screen}
+  .fx-ring{width:30px;height:30px;border:1.5px solid rgba(255,255,255,.7)}
+  .fx-ring.big{width:46px;height:46px;border-color:rgba(194,106,208,.9)}
+  @media(hover:none),(pointer:coarse){.fx-glow,.fx-ring{display:none}}
+
+  /* ---------- Hero（白色衬线，落于深紫天空） ---------- */
+  header{position:relative;text-align:center;padding:46px 20px 16px}
+  .hero{max-width:1080px;margin:0 auto}
+  .hero h1{font-family:"Ma Shan Zheng","Playfair Display",Georgia,"Songti SC",serif;font-weight:400;color:#fff;font-size:clamp(2.4rem,7vw,4.6rem);letter-spacing:.02em;line-height:1.25;margin:0;text-shadow:0 2px 26px rgba(40,20,80,.45)}
+
+  /* ---------- 布局 ---------- */
+  .wrap{max-width:1280px;margin:0 auto;padding:0 22px}
+  .layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:stretch}
+  .sidebar{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto;scrollbar-width:thin;padding-right:4px}
+  .sidebar>*+*{margin-top:16px}
+  .main{min-width:0}
+  @media(max-width:920px){.layout{grid-template-columns:1fr}.sidebar{position:static;max-height:none;order:2;padding-right:0}.main{order:1}}
+
+  /* ---------- 玻璃面板（无边框） ---------- */
+  .panel{background:var(--glass);border:none;border-radius:var(--radius);padding:20px 22px;margin-top:16px;backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);box-shadow:0 12px 38px rgba(60,30,110,.14)}
+  .panel-title{display:flex;align-items:center;gap:11px;margin:0 0 16px;font-family:var(--serif);font-size:19px;font-weight:700;color:#3a2a5e}
+  .panel-title .ico{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:11px;font-size:17px;flex:none;background:rgba(194,106,208,.18);color:#8a3fa0}
+
+  /* 侧边栏模块：默认最小化，悬停展开，无边框 */
+  .side-module{background:var(--glass);border:none;border-radius:var(--radius);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);box-shadow:0 12px 38px rgba(60,30,110,.14);overflow:hidden}
+  .sm-head{display:flex;align-items:center;gap:11px;padding:16px 18px;font-family:var(--serif);font-size:17px;font-weight:700;color:#3a2a5e;cursor:pointer}
+  .sm-head::after{content:"▸";margin-left:auto;font-size:13px;color:#8a77b0}
+  .side-module:hover .sm-head::after,.side-module.open .sm-head::after{content:"▾"}
+  .sm-head .ico{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:11px;font-size:16px;flex:none;background:rgba(194,106,208,.18);color:#8a3fa0}
+  .sm-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s cubic-bezier(.2,.7,.2,1)}
+  .sm-content{overflow:hidden;min-height:0}
+  .sm-inner{padding:0 18px 18px}
+  .side-module:hover .sm-body,.side-module.open .sm-body{grid-template-rows:1fr}
+
+  /* ---------- 表单（无边框） ---------- */
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .row label{font-weight:600;font-size:14px;color:#5a4a80}
+  input[type=date],input[type=text],input[type=number],select{font-size:15px;padding:11px 14px;border:none;border-radius:14px;color:#3a2a5e;background:rgba(255,255,255,.72);font-family:var(--mono);transition:box-shadow .15s,background .15s}
+  input::placeholder{color:#9a86b8}
+  input[type=number]{width:96px}
+  input[type=text]{min-width:150px}
+  input:focus,select:focus{outline:none;background:#fff;box-shadow:0 0 0 3px var(--ring)}
+  button{font-size:14px;padding:10px 20px;border:none;border-radius:24px;cursor:pointer;font-weight:600;font-family:var(--sans);will-change:transform;transition:transform .12s,box-shadow .2s,filter .2s}
+  button:active{transform:scale(.97)}
+  button.primary{background:#fff;color:#3a2a5e;box-shadow:0 8px 22px rgba(60,30,110,.2)}
+  button.primary:hover{filter:brightness(.97)}
+  button.ghost{background:rgba(255,255,255,.35);color:#3a2a5e}
+  button.ghost:hover{background:rgba(255,255,255,.55)}
+  button.indigo{background:rgba(194,106,208,.22);color:#7a2f92;border:1px solid rgba(194,106,208,.35)}
+  button.indigo:hover{background:rgba(194,106,208,.32)}
+  .hint{font-size:13px;color:#6d5a8f}
+
+  /* ---------- 图例（可点击高亮，无边框） ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0 4px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:26px;font-size:14px;font-weight:600;color:#3a2a5e;background:rgba(255,255,255,.26);backdrop-filter:blur(8px);box-shadow:0 6px 16px rgba(60,30,110,.12);transition:transform .15s,box-shadow .15s;white-space:nowrap;cursor:pointer;font-family:var(--sans)}
+  .chip:hover{transform:translateY(-2px);background:rgba(255,255,255,.4)}
+  .chip.active{background:#fff;color:#8a3fa0;box-shadow:0 6px 18px rgba(60,30,110,.2),0 0 0 3px rgba(194,106,208,.25)}
+  .dot{width:13px;height:13px;border-radius:50%;display:inline-block;box-shadow:0 0 8px currentColor}
+
+  /* ---------- 日历（无边框） ---------- */
+  .cal-panel{background:var(--glass);border:none;border-radius:24px;overflow:hidden;backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);box-shadow:0 14px 44px rgba(60,30,110,.14);margin-top:6px}
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.5)}
+  .cal-nav .title{font-family:var(--serif);font-size:22px;font-weight:700;color:#3a2a5e;display:flex;align-items:center;gap:9px}
+  .cal-nav .title::before{content:"✦";font-size:15px;color:var(--accent)}
+  .cal-nav .btns{display:flex;gap:8px}
+  .cal-nav button{min-width:96px}
+  .cal-nav button:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;filter:none;transform:none}
+  .cal{padding:8px 14px 18px}
+  .cal table{width:100%;border-collapse:separate;border-spacing:0}
+  .cal th{font-size:12px;color:#7a6aa0;font-weight:600;padding:10px 2px;text-align:center;letter-spacing:1px}
+  .cal th:nth-child(1){color:var(--c1)}
+  .cal th:nth-child(7){color:var(--c4)}
+  .cal td{text-align:center;vertical-align:top;width:14.28%}
+  .day{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:66px;border-radius:16px;padding:7px 3px;transition:background .15s,box-shadow .2s,transform .12s}
+  .day:hover{background:rgba(255,255,255,.45);transform:translateY(-2px)}
+  .day .dnum{font-size:14px;color:#3a2a5e;font-weight:600}
+  .day.weekend{background:rgba(227,148,111,.14)}
+  .day.today{background:#fff;box-shadow:0 8px 22px rgba(60,30,110,.18)}
+  .day.today .dnum{color:#8a3fa0;font-weight:800}
+  .day.out{opacity:.4}
+  .day.out.today{opacity:1}
+  .day.today .badge,.badge.today-badge{box-shadow:0 0 0 2px #fff,0 0 18px rgba(194,106,208,.6);transform:scale(1.06)}
+  .today-info{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:14px;padding:10px 14px;margin-bottom:12px;border-radius:14px;background:rgba(255,255,255,.28);color:#3a2a5e}
+  .today-info b{color:#8a3fa0}
+  .today-info .badge{box-shadow:0 0 0 2px rgba(255,255,255,.6),0 0 14px rgba(194,106,208,.5)}
+  .today-info.off{background:rgba(255,255,255,.14);color:#6d5a8f}
+  .today-info.off b{color:#8a77b0}
+  .day.out:hover{background:transparent;transform:none}
+  .day.out .dnum{color:#b0a4c8}
+  .day.blank{background:transparent;box-shadow:none}
+  .day.hl{background:rgba(194,106,208,.22)!important;box-shadow:inset 0 0 0 2px rgba(194,106,208,.6)!important;transform:translateY(-1px)}
+  .day.hl .dnum{color:#7a2f92;font-weight:800}
+  .cal.dimming .day:not(.hl):not(.blank):not(.out){opacity:.3}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:11px;color:#fff;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px;box-shadow:0 3px 10px rgba(60,30,110,.18)}
+  .cal.in .badge{animation:badgePop .5s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes badgePop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+
+  /* ---------- 规则提示（无边框） ---------- */
+  .rules{background:rgba(255,244,220,.4);border:none;border-left:4px solid #e7b06a;border-radius:12px;padding:14px 20px;font-size:14px;line-height:1.8;color:#6a4a2a}
+  .rules strong{color:#a86b1f}
+  .rules ul{margin:8px 0 0;padding-left:22px}
+  .rules li{margin:3px 0}
+
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .reveal.d1{transition-delay:.06s}.reveal.d2{transition-delay:.12s}.reveal.d3{transition-delay:.18s}
+
+  @media(max-width:640px){.cal-nav{flex-direction:column}.cal-nav .title{order:-1}}
+  @media(prefers-reduced-motion:reduce){.glow,.sweep,#preloader .core{animation:none!important}*{transition:none!important;animation:none!important}.reveal{opacity:1!important;transform:none!important}}
+  @media print{body{background:#fff;color:#111}.sea,.glow,.grain,#ascii,#preloader,.fx-glow,.fx-ring,.sweep{display:none}.panel,.rules,.cal-panel,.side-module{backdrop-filter:none;background:#fff;box-shadow:none}.cal-nav{border-bottom:none}.cal-nav button{display:none}.hero h1{color:#111;text-shadow:none}}
+</style>
+</head>
+<body>
+<div class="sea"></div>
+<div class="glow"></div>
+<div class="grain"></div>
+<canvas id="ascii"></canvas>
+<div class="sweep"></div>
+
+<div id="preloader"><div class="core"></div><div class="txt">学期值日值班表</div></div>
+
+<header>
+  <div class="hero reveal">
+    <h1>学期值日值班表</h1>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="sidebar">
+      <!-- 学期时间设置：悬停展开 -->
+      <div class="side-module reveal d1">
+        <div class="sm-head"><span class="ico">🗓️</span> 学期时间设置</div>
+        <div class="sm-body"><div class="sm-content"><div class="sm-inner">
+          <div class="row">
+            <label>开始日期</label>
+            <input type="date" id="startDate" value="2026-09-07">
+            <label>结束日期</label>
+            <input type="date" id="endDate" value="2027-01-01">
+            <button class="primary" id="applyDates">应用</button>
+          </div>
+          <div class="hint" style="margin-top:10px">开学日为周一，排班从那天开始轮换。</div>
+        </div></div></div>
+      </div>
+
+      <!-- 人名替换：悬停展开 -->
+      <div class="side-module reveal d2">
+        <div class="sm-head"><span class="ico">🏷️</span> 人名替换</div>
+        <div class="sm-body"><div class="sm-content"><div class="sm-inner">
+          <div class="row">
+            <label>号码</label>
+            <input type="number" id="numInput" min="1" max="6" placeholder="1-6">
+            <label>名字</label>
+            <input type="text" id="nameInput" placeholder="例如：张三">
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="indigo" id="addName">添加 / 更新</button>
+            <button class="ghost" id="toggleNames">显示名字</button>
+            <button class="ghost" id="clearNames">清空姓名</button>
+          </div>
+          <div class="hint" style="margin-top:10px">要让<b>别的电脑也显示固定姓名</b>：打开本 HTML 文件，在代码顶部 <b>DEFAULT_NAMES</b> 里填“号码⇄姓名”（写进文件，随文件复制到任何电脑都在）。也可在页面里填号码+名字点“添加 / 更新”存到本机浏览器；“清空姓名”还原为号码；点击下方图例可高亮某人所有值班日。</div>
+        </div></div></div>
+      </div>
+
+      <!-- 排班规则：悬停展开 -->
+      <div class="side-module reveal d3">
+        <div class="sm-head"><span class="ico">📌</span> 排班规则</div>
+        <div class="sm-body"><div class="sm-content"><div class="sm-inner">
+          <div class="block">
+            <div class="rules">
+              <ul>
+                <li>共 6 人，用编号 <b>1–6</b> 表示；开学日（周一）当天由 <b>1号</b> 值班，从 1号 开始轮换。</li>
+                <li>工作日（周一至周五）：每天安排 1 人值班。</li>
+                <li>周末（周六、周日）：两天由<b>同一个人</b>值班（算 1 个班，一次值 2 天）。</li>
+                <li>每周共 6 个班（5 个工作日 + 1 个周末班），正好覆盖 6 人，每人都<b>一周只排一次</b>，公平轮换。</li>
+                <li><b>同一人相邻两次值班至少间隔 4 天</b>（周末块算一次、值 2 天），尽可能拉开；每人每 6 周恰好轮到一次周末。</li>
+              </ul>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+      <!-- 请假：悬停展开 -->
+      <div class="side-module reveal d4">
+        <div class="sm-head"><span class="ico">📅</span> 请假</div>
+        <div class="sm-body"><div class="sm-content"><div class="sm-inner">
+          <div class="row">
+            <label>姓名</label>
+            <input type="text" id="leaveName" placeholder="输入姓名或1~6号">
+            <label>到</label>
+            <input type="date" id="leaveUntil" value="2026-09-15">
+            <button class="indigo" id="addLeave">请假</button>
+          </div>
+          <div class="hint" style="margin-top:10px">输入姓名、选择“请假到”日期后点请假；请假期间该人的班由其他人替补。下方为请假名单，点“销假”可提前销假。</div>
+          <div id="leaveList" style="margin-top:12px"></div>
+        </div></div></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- 日历：第一眼主角 -->
+      <section class="cal-panel reveal d1">
+        <div class="cal-nav">
+          <div class="btns"><button class="ghost" id="prevMonth">◀ 上一月</button></div>
+          <div class="title" id="monthTitle"></div>
+          <div class="btns"><button class="ghost" id="nextMonth">下一月 ▶</button></div>
+        </div>
+        <div class="cal" id="calendar"></div>
+      </section>
+
+      <!-- 图例（可点击高亮） -->
+      <div class="legend reveal d2" id="legend"></div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ 排班逻辑（保持不变） ============ -->
+<script>
+(function () {
+  'use strict';
+  var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  var DAYMAP = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 0: 'Sun' };
+
+  var COLORS = { 1: 'var(--c1)', 2: 'var(--c2)', 3: 'var(--c3)', 4: 'var(--c4)', 5: 'var(--c5)', 6: 'var(--c6)' };
+
+  // ---- 状态 ----
+  var startDate = new Date(2026, 8, 7);   // 2026-09-07（开学日，当天周一为“1号”值班）
+  var endDate   = new Date(2027, 0, 1);   // 2027-01-01
+  var viewDate  = new Date(2026, 8, 1);   // 当前查看的月份
+  var showNames = false;
+  var nameMap   = {};                       // 号码 -> 名字
+  var highlight = null;                     // 当前高亮显示的号码（点击图例切换）
+
+  // ★ 在这里填真实姓名：名字会写进这个 HTML 文件，复制到哪台电脑打开都显示这些名字。
+  //   格式：{ 号码: '姓名', ... }，例：{1:'张三', 2:'李四', 3:'王五', 4:'赵六', 5:'钱七', 6:'孙八'}
+  //   留空('')就显示“1号~6号”。要长期固定就填这里，别靠页面里的临时编辑。
+  var DEFAULT_NAMES = { 1:'王敬珂', 2:'王昱辉', 3:'高云鑫', 4:'伍亮宾', 5:'白玛尺来', 6:'许涵' };
+
+  // 方案B：本机本地持久化（localStorage，仅本机浏览器有效）
+  var STORE_KEY = 'dutyNamesFuture';
+  function loadNames() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (e) { return {}; } }
+  function saveNames() { try { localStorage.setItem(STORE_KEY, JSON.stringify(nameMap)); } catch (e) {} }
+
+  var EPOCH = null;   // 每学期排班起点（开学日所在周的周一）
+
+  function setEpoch() {
+    var m = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    var dow = m.getDay();
+    m.setDate(m.getDate() - ((dow + 6) % 7));   // 回退到本周周一
+    m.setHours(0, 0, 0, 0);
+    EPOCH = m;
+  }
+
+  function dayDiff(d) {
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((x - EPOCH) / 86400000);
+  }
+  function weekIndex(d) { return Math.floor(dayDiff(d) / 7); }
+
+  // 间隔优化排班：每周每人出现1次，同一人相邻两次值班至少间隔4天（越大越好）
+  var CYCLE = [
+    { Mon:2, Tue:3, Wed:4, Thu:5, Fri:6 },   // 周末=1
+    { Mon:3, Tue:4, Wed:5, Thu:6, Fri:1 },   // 周末=2
+    { Mon:4, Tue:5, Wed:6, Thu:1, Fri:2 },   // 周末=3
+    { Mon:5, Tue:6, Wed:1, Thu:2, Fri:3 },   // 周末=4
+    { Mon:1, Tue:2, Wed:3, Thu:6, Fri:4 },   // 周末=5
+    { Mon:1, Tue:4, Wed:2, Thu:3, Fri:5 }    // 周末=6
+  ];
+  var PHASE = 5;   // 偏移：使开学日那周（第0周）的周一是“1号”，即“从1号开始”
+  function getAssignment(wi) {
+    var idx = ((wi + PHASE) % 6 + 6) % 6;
+    var we = idx + 1;                        // 周末值班人 1..6
+    var t = CYCLE[idx];
+    return { Mon:t.Mon, Tue:t.Tue, Wed:t.Wed, Thu:t.Thu, Fri:t.Fri, Sat:we, Sun:we };
+  }
+
+  function personForDate(d) {
+    var wi = weekIndex(d);
+    if (wi < 0) return null;
+    return getAssignment(wi)[DAYMAP[d.getDay()]];
+  }
+
+  // ---- 请假 ----
+  var leaveMap = {};                 // 号码 -> {from, to}
+  var LEAVE_KEY = 'dutyLeaves';
+  function saveLeaves() { try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveMap)); } catch (e) {} }
+  function loadLeaves() { try { var o = JSON.parse(localStorage.getItem(LEAVE_KEY) || '{}'); leaveMap = {}; for (var k in o) { if (o.hasOwnProperty(k)) leaveMap[k] = o[k]; } } catch (e) {} }
+  function onLeave(p, d) { var l = leaveMap[p]; if (!l) return false; var ms = d.getTime(); return ms >= l.from && ms <= l.to; }
+  function resolvePerson(text) {
+    text = (text || '').trim();
+    if (/^[1-6]$/.test(text)) return parseInt(text, 10);
+    if (/^[1-6]号$/.test(text)) return parseInt(text, 10);
+    for (var p = 1; p <= 6; p++) { if (nameMap[p] && nameMap[p].toLowerCase() === text.toLowerCase()) return p; }
+    return null;
+  }
+  function renderLeaveList() {
+    var el = document.getElementById('leaveList');
+    if (!el) return;
+    el.innerHTML = '';
+    var todayMs = new Date().setHours(0,0,0,0);
+    var keys = Object.keys(leaveMap).filter(function (k) { return leaveMap[k].to >= todayMs; });
+    if (!keys.length) { el.innerHTML = '<div class="hint">当前无人请假</div>'; return; }
+    var table = document.createElement('table');
+    table.style.width = '100%'; table.style.borderCollapse = 'collapse';
+    table.innerHTML = '<tr><th style="text-align:left;padding:6px 8px">姓名</th><th style="text-align:left;padding:6px 8px">请假至</th><th></th></tr>';
+    keys.forEach(function (k) {
+      var p = parseInt(k, 10), l = leaveMap[k], until = new Date(l.to);
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td style="padding:6px 8px">' + label(p) + '</td><td style="padding:6px 8px">' + until.getFullYear() + '/' + (until.getMonth()+1) + '/' + until.getDate() + '</td>';
+      var td = document.createElement('td'); td.style.padding = '4px 8px'; td.style.textAlign = 'right';
+      var btn = document.createElement('button'); btn.className = 'ghost'; btn.textContent = '销假'; btn.style.padding = '5px 12px'; btn.style.fontSize = '12px';
+      btn.addEventListener('click', function () { delete leaveMap[k]; saveLeaves(); renderLeaveList(); renderAll(); });
+      td.appendChild(btn); tr.appendChild(td); table.appendChild(tr);
+    });
+    el.appendChild(table);
+  }
+
+  // ---- 含请假替补的最终排班 ----
+  var schedule = {};                 // dateMs -> person
+  var recent = {};                   // 近7天值班次数（用于替补均摊）
+  function addRecent(p, ms) { if (!recent[p]) recent[p] = []; recent[p].push(ms); }
+  function recentScore(p, ms) { if (!recent[p]) return 0; var cut = ms - 7*86400000, c = 0; for (var i = 0; i < recent[p].length; i++) { if (recent[p][i] >= cut) c++; } return c; }
+  function pickSub(d) {
+    var now = d.getTime(), best = null, bs = Infinity;
+    for (var p = 1; p <= 6; p++) {
+      if (onLeave(p, d)) continue;
+      var s = recentScore(p, now - 1);
+      if (s < bs) { bs = s; best = p; }
+    }
+    if (best === null) best = 1;
+    return best;
+  }
+  function buildSchedule() {
+    schedule = {}; recent = {};
+    var endMs = endDate.getTime();
+    for (var dt = new Date(startDate); dt <= endDate; dt.setDate(dt.getDate() + 1)) {
+      var d = new Date(dt); d.setHours(0, 0, 0, 0);
+      var dow = d.getDay(), ms = d.getTime();
+      var base = personForDate(d);
+      if (base == null) continue;
+      if (dow === 6) {                                  // 周六：周末块，周日同一人
+        var sunMs = ms + 86400000;
+        var leave = onLeave(base, d) || (sunMs <= endMs && onLeave(base, new Date(sunMs)));
+        if (leave) {
+          var p = pickSub(d);
+          schedule[ms] = p; if (sunMs <= endMs) schedule[sunMs] = p;
+          addRecent(p, ms); if (sunMs <= endMs) addRecent(p, sunMs);
+        } else {
+          schedule[ms] = base; if (sunMs <= endMs) schedule[sunMs] = base;
+          addRecent(base, ms); if (sunMs <= endMs) addRecent(base, sunMs);
+        }
+      } else if (dow === 0) {                           // 周日：未被周六配对时单独处理
+        if (schedule[ms] === undefined) {
+          var p2 = onLeave(base, d) ? pickSub(d) : base;
+          schedule[ms] = p2; addRecent(p2, ms);
+        }
+      } else {                                          // 周一~周五
+        if (onLeave(base, d)) { var p3 = pickSub(d); schedule[ms] = p3; addRecent(p3, ms); }
+        else { schedule[ms] = base; addRecent(base, ms); }
+      }
+    }
+  }
+  function dutyPerson(d) { var v = schedule[d.getTime()]; return v === undefined ? null : v; }
+
+  document.getElementById('addLeave').addEventListener('click', function () {
+    var p = resolvePerson(document.getElementById('leaveName').value);
+    var until = document.getElementById('leaveUntil').value;
+    if (p == null) { alert('找不到这个人，请输入姓名或 1~6 号'); return; }
+    if (!until) { alert('请选择“请假到”日期'); return; }
+    var from = new Date(); from.setHours(0, 0, 0, 0);
+    var to = new Date(until + 'T00:00:00');
+    if (to < from) { alert('结束日期不能早于今天'); return; }
+    leaveMap[p] = { from: from.getTime(), to: to.getTime() };
+    document.getElementById('leaveName').value = ''; document.getElementById('leaveUntil').value = '';
+    saveLeaves(); renderLeaveList(); renderAll();
+  });
+
+  // 显示文案：名字 or 号码
+  function label(p) {
+    if (showNames && nameMap[p]) return nameMap[p];
+    return p + '号';
+  }
+
+  // ---- 名字替换组件 ----
+  var numInput = document.getElementById('numInput');
+  var nameInput = document.getElementById('nameInput');
+  var toggleBtn = document.getElementById('toggleNames');
+
+  function updateToggleBtn() { toggleBtn.textContent = showNames ? '显示号码' : '显示名字'; }
+
+  document.getElementById('addName').addEventListener('click', function () {
+    var n = parseInt(numInput.value, 10);
+    var nm = nameInput.value.trim();
+    if (!(n >= 1 && n <= 6)) { alert('请输入 1–6 之间的号码'); return; }
+    if (!nm) { alert('请输入名字'); return; }
+    nameMap[n] = nm;
+    saveNames();   // 记住姓名，刷新后仍保留
+    numInput.value = ''; nameInput.value = '';
+    renderLegend();
+    renderCalendar();
+    if (!showNames) { showNames = true; updateToggleBtn(); renderAll(); }
+  });
+
+  toggleBtn.addEventListener('click', function () {
+    showNames = !showNames;
+    updateToggleBtn();
+    renderLegend();
+    renderCalendar();
+  });
+
+  document.getElementById('clearNames').addEventListener('click', function () {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    nameMap = {};
+    showNames = false;
+    updateToggleBtn();
+    renderAll();
+  });
+
+  // ---- 图例 ----
+  var legendEl = document.getElementById('legend');
+  function toggleHighlight(p) {
+    highlight = (highlight === p) ? null : p;
+    renderLegend();
+    renderCalendar();
+  }
+  function renderLegend() {
+    legendEl.innerHTML = '';
+    [1, 2, 3, 4, 5, 6].forEach(function (p) {
+      var span = document.createElement('span');
+      span.className = 'chip' + (highlight === p ? ' active' : '');
+      span.innerHTML = '<span class="dot" style="background:' + COLORS[p] + ';color:' + COLORS[p] + '"></span>' + label(p);
+      span.addEventListener('click', function () { toggleHighlight(p); });
+      legendEl.appendChild(span);
+    });
+  }
+
+  // ---- 学期设置 ----
+  var startInput = document.getElementById('startDate');
+  var endInput = document.getElementById('endDate');
+  function parseInputs() {
+    var s = new Date(startInput.value + 'T00:00:00');
+    var e = new Date(endInput.value + 'T00:00:00');
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) { alert('日期格式不正确'); return; }
+    if (e < s) { alert('结束日期不能早于开始日期'); return; }
+    startDate = s; endDate = e;
+    setEpoch();
+    viewDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  }
+  document.getElementById('applyDates').addEventListener('click', function () {
+    parseInputs();
+    renderAll();
+  });
+
+  // ---- 单月日历 ----
+  var monthTitle = document.getElementById('monthTitle');
+  var calEl = document.getElementById('calendar');
+  var prevBtn = document.getElementById('prevMonth');
+  var nextBtn = document.getElementById('nextMonth');
+
+  function firstMonth() { return new Date(startDate.getFullYear(), startDate.getMonth(), 1); }
+  function lastMonth() { return new Date(endDate.getFullYear(), endDate.getMonth(), 1); }
+
+  function renderCalendar() {
+    var y = viewDate.getFullYear(), m = viewDate.getMonth();
+    monthTitle.textContent = y + ' 年 ' + (m + 1) + ' 月';
+
+    var today = new Date();
+    var t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    var first = new Date(y, m, 1);
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+    var lead = first.getDay();
+
+    // 今日值日提示条
+    var inTerm = t0 >= startDate && t0 <= endDate;
+    var tp = inTerm ? dutyPerson(t0) : null;
+    var todayBanner;
+    if (inTerm) {
+      todayBanner = '<div class="today-info">📌 今日 <b>' + (t0.getMonth() + 1) + ' 月 ' + t0.getDate() + ' 日</b> 值日：<span class="badge" style="background:' + COLORS[tp] + '">' + label(tp) + '</span></div>';
+    } else {
+      todayBanner = '<div class="today-info off">📌 今日（' + (t0.getMonth() + 1) + ' 月 ' + t0.getDate() + ' 日）不在本学期排班期间</div>';
+    }
+
+    var html = '<table><thead><tr><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead><tbody>';
+    var cells = [];
+    for (var i = 0; i < lead; i++) cells.push(null);
+    for (var d = 1; d <= daysInMonth; d++) cells.push(new Date(y, m, d));
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    for (var r = 0; r < cells.length; r += 7) {
+      html += '<tr>';
+      for (var c = 0; c < 7; c++) {
+        var cell = cells[r + c];
+        if (!cell) { html += '<td><div class="day blank"></div></td>'; continue; }
+        var dow = cell.getDay();
+        var isWe = (dow === 0 || dow === 6);
+        var inRange = cell >= startDate && cell <= endDate;
+        var isToday = cell.getTime() === t0.getTime();
+        var cls = 'day' + (isWe ? ' weekend' : '') + (isToday ? ' today' : '') + (inRange ? '' : ' out');
+        var badge = '';
+        var person = inRange ? dutyPerson(cell) : null;
+        if (person != null && highlight === person) cls += ' hl';
+        if (person != null) badge = '<span class="badge' + (isToday ? ' today-badge' : '') + '" style="background:' + COLORS[person] + '">' + label(person) + '</span>';
+        html += '<td><div class="' + cls + '"><span class="dnum">' + cell.getDate() + '</span>' + badge + '</div></td>';
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    calEl.innerHTML = todayBanner + html;
+    calEl.classList.add('in');   // 触发徽章入场动画
+    calEl.classList.toggle('dimming', highlight != null);
+
+    var fm = firstMonth(), lm = lastMonth();
+    prevBtn.disabled = (viewDate.getFullYear() === fm.getFullYear() && viewDate.getMonth() === fm.getMonth());
+    nextBtn.disabled = (viewDate.getFullYear() === lm.getFullYear() && viewDate.getMonth() === lm.getMonth());
+  }
+
+  prevBtn.addEventListener('click', function () {
+    var fm = firstMonth();
+    var cand = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+    if (cand < fm) cand = fm;
+    viewDate = cand;
+    renderCalendar();
+  });
+
+  nextBtn.addEventListener('click', function () {
+    var lm = lastMonth();
+    var cand = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+    if (cand > lm) cand = lm;
+    viewDate = cand;
+    renderCalendar();
+  });
+
+  function renderAll() {
+    buildSchedule();
+    renderLegend();
+    renderCalendar();
+    renderLeaveList();
+  }
+
+  // 初始化：先用文件里写死的默认姓名（DEFAULT_NAMES，跨电脑生效），再叠加本机 localStorage 的覆盖
+  for (var p in DEFAULT_NAMES) { if (DEFAULT_NAMES.hasOwnProperty(p) && DEFAULT_NAMES[p]) nameMap[p] = DEFAULT_NAMES[p]; }
+  var saved = loadNames();
+  for (var q in saved) { if (saved.hasOwnProperty(q)) nameMap[q] = saved[q]; }
+  if (Object.keys(nameMap).length > 0) { showNames = true; }   // 有姓名就默认显示姓名
+  updateToggleBtn();
+  loadLeaves();
+  setEpoch();
+  renderAll();
+})();
+</script>
+
+<!-- ============ 动效层（滚动显现 + 光标 + 磁性按钮） ============ -->
+<script>
+(function () {
+  'use strict';
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  // ---- 预加载器退场 ----
+  var pre = document.getElementById('preloader');
+  function hidePre() { if (pre && !pre.classList.contains('done')) { pre.classList.add('done'); } }
+  window.addEventListener('load', function () { hidePre(); });
+  setTimeout(hidePre, 1500);
+
+  // ---- 滚动显现 ----
+  var reveals = [].slice.call(document.querySelectorAll('.reveal'));
+  function revealAll() { reveals.forEach(function (el) { el.classList.add('in'); }); }
+  if (reduceMotion || !('IntersectionObserver' in window)) { revealAll(); }
+  else {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    reveals.forEach(function (el) { io.observe(el); });
+    setTimeout(revealAll, 2500);
+  }
+
+  // ---- 侧边栏模块：点击可“钉住”展开（触屏/无悬停时也能用）----
+  document.querySelectorAll('.side-module .sm-head').forEach(function (head) {
+    head.addEventListener('click', function () { head.parentElement.classList.toggle('open'); });
+  });
+
+  // ---- 自定义光标（发光 + 环）----
+  if (finePointer && !reduceMotion) {
+    var glow = document.createElement('div'); glow.className = 'fx-glow';
+    var ring = document.createElement('div'); ring.className = 'fx-ring';
+    document.body.appendChild(glow); document.body.appendChild(ring);
+    var mx = innerWidth / 2, my = innerHeight / 2, gx = mx, gy = my, rx = mx, ry = my;
+    document.addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; });
+    (function loop() {
+      gx += (mx - gx) * 0.10; gy += (my - gy) * 0.10;
+      rx += (mx - rx) * 0.32; ry += (my - ry) * 0.32;
+      glow.style.transform = 'translate(' + (gx - 115) + 'px,' + (gy - 115) + 'px)';
+      ring.style.transform = 'translate(' + (rx - 15) + 'px,' + (ry - 15) + 'px)';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('button, .chip, .day').forEach(function (el) {
+      el.addEventListener('mouseenter', function () { ring.classList.add('big'); });
+      el.addEventListener('mouseleave', function () { ring.classList.remove('big'); });
+    });
+  }
+
+  // ---- 磁性按钮 ----
+  if (finePointer && !reduceMotion) {
+    document.querySelectorAll('button').forEach(function (btn) {
+      btn.addEventListener('mousemove', function (e) {
+        var r = btn.getBoundingClientRect();
+        var dx = e.clientX - (r.left + r.width / 2);
+        var dy = e.clientY - (r.top + r.height / 2);
+        btn.style.transform = 'translate(' + dx * 0.18 + 'px,' + dy * 0.2 + 'px)';
+      });
+      btn.addEventListener('mouseleave', function () { btn.style.transform = ''; });
+    });
+  }
+})();
+</script>
+</body>
+</html>
