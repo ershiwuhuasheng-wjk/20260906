@@ -247,6 +247,9 @@
           </div>
           <div class="hint" style="margin-top:10px">输入姓名、选择“请假到”日期后点请假；请假期间该人的班由其他人替补。下方为请假名单，点“销假”可提前销假。</div>
           <div id="leaveList" style="margin-top:12px"></div>
+          <div class="hint" style="margin-top:12px">共享方法：改完点下方「📤 下载 data.json」，用下载的文件替换你 GitHub 仓库里的 <b>data.json</b> 并 push，别人刷新即可看到同一份请假。</div>
+          <div style="margin-top:8px"><button class="ghost" id="dlDataJson" type="button">📤 下载 data.json</button></div>
+          <pre id="dataJsonOut" style="margin-top:10px;font-family:var(--mono);font-size:12px;white-space:pre-wrap;background:rgba(0,0,0,.18);border-radius:10px;padding:10px;color:#e9e2ff;max-height:160px;overflow:auto">{"leaveMap":{}}</pre>
         </div></div></div>
       </div>
     </aside>
@@ -337,8 +340,31 @@
   // ---- 请假 ----
   var leaveMap = {};                 // 号码 -> {from, to}
   var LEAVE_KEY = 'dutyLeaves';
-  function saveLeaves() { try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveMap)); } catch (e) {} }
-  function loadLeaves() { try { var o = JSON.parse(localStorage.getItem(LEAVE_KEY) || '{}'); leaveMap = {}; for (var k in o) { if (o.hasOwnProperty(k)) leaveMap[k] = o[k]; } } catch (e) {} }
+  // 共享方式：把请假写入仓库里的 data.json，页面读取它；改完通过下方“下载 data.json”替换仓库文件并 push，别人刷新即可看到。
+  function storeLocal() { try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveMap)); } catch (e) {} }
+  function leaveJson() { return JSON.stringify({ leaveMap: leaveMap }, null, 2); }
+  function updateDataJson() {
+    var out = document.getElementById('dataJsonOut');
+    if (out) out.textContent = leaveJson();
+  }
+  function saveLeaves() {
+    storeLocal();
+    updateDataJson();
+  }
+  function loadLeaves() {
+    return fetch('data.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (j) { leaveMap = (j && j.leaveMap) || {}; storeLocal(); updateDataJson(); })
+      .catch(function () { try { leaveMap = JSON.parse(localStorage.getItem(LEAVE_KEY) || '{}'); } catch (e) { leaveMap = {}; } updateDataJson(); });
+  }
+  document.getElementById('dlDataJson').addEventListener('click', function () {
+    var blob = new Blob([leaveJson()], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'data.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 200);
+  });
   function onLeave(p, d) { var l = leaveMap[p]; if (!l) return false; var ms = d.getTime(); return ms >= l.from && ms <= l.to; }
   function resolvePerson(text) {
     text = (text || '').trim();
@@ -598,9 +624,9 @@
   for (var q in saved) { if (saved.hasOwnProperty(q)) nameMap[q] = saved[q]; }
   if (Object.keys(nameMap).length > 0) { showNames = true; }   // 有姓名就默认显示姓名
   updateToggleBtn();
-  loadLeaves();
   setEpoch();
-  renderAll();
+  renderAll();                                     // 先用本机缓存/默认渲染，不让页面空白
+  loadLeaves().then(function () { renderAll(); }); // 再从云端拉取请假并刷新
 })();
 </script>
 
